@@ -1,0 +1,381 @@
+create or replace 
+PROCEDURE ADD_COMISSION ( 
+DATE_COMISSION_ADD IN date, 
+TIME_COMISSION_ADD IN VARCHAR2, 
+STATUS_COMISSION OUT VARCHAR2) 
+IS 
+comission_id integer; 
+begin 
+Select max(to_number(COMISSION_ID))into comission_id from comission; 
+comission_id:=comission_id + 1; 
+insert into COMISSION(COMISSION_ID,DATE_COMISSION,TIME_COMISSION) 
+Values (comission_id,to_date(DATE_COMISSION_ADD, 'yyyy-mm-dd') ,TIME_COMISSION_ADD ); 
+STATUS_COMISSION:='ok';
+commit;
+END ADD_COMISSION ;
+/
+create or replace 
+PROCEDURE ADD_LIST ( 
+list_number IN VARCHAR2 , 
+student_number IN VARCHAR2, 
+group_name IN VARCHAR2, 
+group_number IN VARCHAR2, 
+list_resual IN VARCHAR2, 
+list_login IN VARCHAR2, 
+STATUS_LIST OUT VARCHAR2 
+) 
+IS 
+name_id_list integer;
+comisison_id integer; 
+student_name integer; 
+group_add integer;
+BEGIN 
+SET TRANSACTION ISOLATION LEVEL serializable; 
+SELECT COUNT(*) into student_name from users where list_login = user_login and status=0 ; 
+if student_name > 0 then 
+begin 
+Select COUNT(*) into comisison_id from comission where list_number = COMISSION_ID ; 
+if comisison_id >0 then 
+begin
+Select count (*) into name_id_list  from LISTS where list_login = USERS_LOGIN_FK and list_number   = NUMBER_LIST  ;
+if name_id_list =0 then
+begin
+Select count (*) into group_add from lists  where NAME_GROUP =  group_name  and list_login = USERS_LOGIN_FK ;
+if group_add =0  then
+insert into LISTS(NUMBER_LIST, NUMBER_STUDENT,NAME_GROUP, NUMBER_GROUP , RESUALT, USERS_LOGIN_FK ,COMISSION_FK) 
+Values(list_number, student_number ,group_name,group_number ,list_resual, list_login , list_number); 
+STATUS_LIST:='ok'; 
+else 
+STATUS_LIST:='student already there'; 
+end if;
+end;
+else 
+STATUS_LIST:='student already there'; 
+end if; 
+end; 
+else 
+STATUS_LIST:='ERROR 1'; 
+end if; 
+end; 
+else 
+STATUS_LIST:='ERROR 2'; 
+end if; 
+END ADD_LIST;
+/
+create or replace 
+PROCEDURE ADD_LIST_TEACHER (
+TEACHER_LOGIN IN VARCHAR2,
+SUBJECT IN VARCHAR2,
+STATUS_Update OUT VARCHAR2 
+)
+IS
+COMISSION_FK INTEGER;
+NEW_COMISSION_FK  INTEGER;
+NEW_TIMETABLE_ID INTEGER;
+login_name INTEGER;
+subjectname INTEGER;
+ls Integer;
+BEGIN
+SET TRANSACTION ISOLATION LEVEL serializable;
+SELECT COUNT(*)  into
+login_name from users where TEACHER_LOGIN= USER_LOGIN and status=1 ;
+IF login_name >0 then
+begin 
+SELECT COUNT (*) into  subjectname  from  subject  where SUBJECT_NAME= SUBJECT ;
+IF subjectname > 0
+THEN 
+BEGIN
+SELECT COUNT (*) into ls from List_teacher where  SUBJECT_NAME_FK= SUBJECT and USER_LOGIN_FK= TEACHER_LOGIN;
+if ls = 0 then 
+  begin
+ select max(COMISSION_FK) into NEW_COMISSION_FK from List_teacher ;
+NEW_COMISSION_FK := NEW_COMISSION_FK +1 ;
+ select max(TIMETABLE_ID) into NEW_TIMETABLE_ID from List_teacher ;
+NEW_TIMETABLE_ID :=NEW_TIMETABLE_ID +1 ;
+Select max(COMISSION_ID) into COMISSION_FK from comission;
+if  NEW_COMISSION_FK <=  COMISSION_FK then 
+Insert into List_teacher (TIMETABLE_ID, SUBJECT_NAME_FK , USER_LOGIN_FK , COMISSION_FK )
+Values (NEW_TIMETABLE_ID , SUBJECT , TEACHER_LOGIN ,  NEW_COMISSION_FK );
+commit;
+STATUS_Update:= 'ok';
+else 
+STATUS_Update:= 'not create comission';
+end if;
+end;
+else 
+STATUS_Update:= 'ERROR 1';
+end if;
+end;
+else
+STATUS_Update:= 'ERROR 2';
+end if;
+end;
+else 
+STATUS_Update:= 'ERROR 3';
+end if;
+
+END ADD_LIST_TEACHER;
+/
+create or replace 
+PROCEDURE Add_subject (
+name_subject IN VARCHAR2,
+time_credit_sufject IN VARCHAR2,
+status_subject out VARCHAR2
+)
+is
+name_subject1 integer;
+begin 
+set transaction isolation level serializable;
+    SELECT COUNT(*) into name_subject1 from subject where SUBJECT_NAME  = name_subject ;
+  if name_subject1=0  then 
+insert into SUBJECT(SUBJECT_NAME ,SUBJECT_CREDIT_TIME )
+values(name_subject,time_credit_sufject );
+status_subject:= 'ok';
+else
+status_subject:= 'exist';
+end if;
+end Add_subject;
+/
+create or replace 
+PROCEDURE AUTHO(USER_LOGIN2 IN VARCHAR2,
+USER_PASSWORD2 IN VARCHAR2, 
+AUTHO_STATUS OUT INTEGER,
+STATUS_AT OUT VARCHAR2)
+IS
+authorization_name INTEGER;
+authorization_loign INTEGER;
+status INTEGER;
+   BEGIN
+   set transaction isolation level serializable;
+    SELECT COUNT(*) 
+      into authorization_name 
+      from USERS
+      where USER_LOGIN=USER_LOGIN2;
+    
+  if authorization_name>0 then 
+    begin
+      SELECT COUNT(*)   into authorization_loign    from USERS where USER_PASSWORD=USER_PASSWORD2 and USER_LOGIN=USER_LOGIN2;
+      
+      if authorization_loign>0 then 
+        begin
+          Select (Status) into status from USERS where USER_PASSWORD=USER_PASSWORD2 AND USER_LOGIN = USER_LOGIN2; 
+          IF status >0 then 
+            AUTHO_STATUS:= 1;
+          else 
+           AUTHO_STATUS:= 0;
+          END IF;
+          STATUS_AT:='ok';
+        end;
+      else 
+        STATUS_AT:='fail password';
+      END IF;
+    end;
+  else 
+    STATUS_AT:='fail email and name';
+  END IF;
+
+END AUTHO ;
+/
+create or replace 
+PROCEDURE Change_COMISSION (
+COMISSION_ID_IN IN VARCHAR2,
+DATE_COMISSION_IN IN DATE,
+TIME_COMISSION_IN IN VARCHAR2,
+status_comission_in out varchar)
+is  comission_id integer ;
+Begin
+Select count(*) into comission_id from comission where COMISSION_ID_IN=COMISSION_ID ;
+if comission_id>0 then 
+update comission set DATE_COMISSION= DATE_COMISSION_IN , TIME_COMISSION =TIME_COMISSION_IN where COMISSION_ID= COMISSION_ID_IN;
+status_comission_in:='ok';
+else 
+status_comission_in:='not found comission_id';
+end if;
+end Change_COMISSION;
+/
+create or replace 
+PROCEDURE Change_list (
+ LIST_NUMBER_IN In VARCHAR2,
+ STUDENT_NUMBER_IN In Varchar2,
+ GROUP_NAME_IN  In Varchar2,
+ GROUP_NUMBER_IN  In Varchar2,
+ LIST_RESUAL_IN  In Varchar2,
+ LIST_LOGIN_IN  In Varchar2,
+
+ STATUS_LIST_IN OUT Varchar2
+ )
+ IS
+ list_number integer;
+ student_name integer; 
+ begin 
+ select count(*) into list_number from LISTS where LIST_NUMBER_IN = NUMBER_LIST AND STUDENT_NUMBER_IN = NUMBER_STUDENT ;
+ IF list_number > 0 THEN 
+ BEGIN 
+ SELECT count(*) into   student_name  from  USers where  LIST_LOGIN_IN = USER_LOGIN ;
+ If student_name >0 then 
+ Update LISTS set   NUMBER_STUDENT =  STUDENT_NUMBER_IN , NAME_GROUP=  GROUP_NAME_IN , NUMBER_GROUP = GROUP_NUMBER_IN , RESUALT= LIST_RESUAL_IN , USERS_LOGIN_FK = LIST_LOGIN_IN  where NUMBER_LIST =LIST_NUMBER_IN and NUMBER_STUDENT =  STUDENT_NUMBER_IN and COMISSION_FK =  LIST_NUMBER_IN;
+  STATUS_LIST_IN:='ok';
+  ELSE 
+  STATUS_LIST_IN:='not found student';
+  end if ;
+  end;
+  else  STATUS_LIST_IN:='not found list_number';
+  end if ;
+  end Change_list;
+  /
+create or replace 
+PROCEDURE Change_list_tecaher 
+
+(TIMETABLE_ID_IN In VARCHAR2,
+SUBJECT_NAME_FK_IN IN VARCHAR2,
+TEACHER_login_IN IN VARCHAR2,
+STATUS_LIST_TEACHER_in out VARCHAR2
+)
+IS
+timetable_id integer ;
+user_login integer ;
+subject_name integer;
+login_subject integer;
+begin
+Select count(*) into timetable_id from list_teacher where TIMETABLE_ID = TIMETABLE_ID_IN ;
+if timetable_id>0  then 
+begin 
+Select count(*) into user_login  from Users where TEACHER_login_IN = USER_LOGIN and status=1 ;
+if user_login>0 then  
+Begin
+Select count(*) into  subject_name from subject  where SUBJECT_NAME = SUBJECT_NAME_FK_IN  ;
+if  subject_name>0 then 
+Begin 
+Select count(*) into  login_subject from list_teacher where TEACHER_login_IN = USER_LOGIN_FK and SUBJECT_NAME_FK =SUBJECT_NAME_FK_IN ;
+if login_subject=0  then        
+ UPDATE  LIST_TEACHER set SUBJECT_NAME_FK= SUBJECT_NAME_FK_IN , USER_LOGIN_FK=TEACHER_login_IN where TIMETABLE_ID=TIMETABLE_ID_IN ;
+STATUS_LIST_TEACHER_in:='ok';
+else 
+STATUS_LIST_TEACHER_in:='has already';
+end if;
+end;
+else 
+STATUS_LIST_TEACHER_in:='nor found subject';
+end if;
+end;
+else
+STATUS_LIST_TEACHER_in:='nor found login';
+end if;
+end;
+else 
+STATUS_LIST_TEACHER_in:='nor found id';
+end if;
+end Change_list_tecaher ;
+/
+create or replace 
+PROCEDURE change_status 
+(USER_LOGIN_CHANGE  in varchar2,
+ status_users_status out varchar2)
+ is 
+ login_user integer;
+begin
+Select count(*) into login_user  from users Where USER_LOGIN= USER_LOGIN_CHANGE and STATUS = 0 ;
+if login_user > 0  then 
+Update users set STATUS = 1 Where USER_LOGIN=  USER_LOGIN_CHANGE ;
+status_users_status:= 'ok';
+else 
+status_users_status:= 'not found user';
+end if;
+end change_status ;
+/
+create or replace 
+PROCEDURE change_subject
+(
+Subject_in IN varchar2 ,
+Subject_credit_time_in IN varchar2,
+status_subject_in out varchar2
+)
+IS
+subject_name INTEGER;
+begin
+set transaction isolation level serializable;
+ SELECT COUNT(*)  into subject_name from subject where subject_name=Subject_in ;
+ if subject_name > 0 then  
+  UPDATE  subject SET SUBJECT_CREDIT_TIME=Subject_credit_time_in WHERE SUBJECT_NAME = Subject_in ;
+  STATUS_subject_in:='ok';
+  else 
+  STATUS_subject_in:='error';
+  end if;
+   
+   end change_subject ;
+   /
+create or replace 
+PROCEDURE Check_in  (
+  USER_LOGIN1 IN VARCHAR2,
+  USER_PASSWORD1 IN VARCHAR2,
+  USER_EMAIL1 IN VARCHAR2, 
+  USER_NAME1 IN VARCHAR2, 
+  STATUS OUT VARCHAR2 
+) IS 
+  Login INTEGER;
+  Email INTEGER;
+BEGIN
+  SET TRANSACTION ISOLATION LEVEL serializable;
+  SELECT COUNT(*) 
+  INTO Login FROM USERS WHERE USER_LOGIN = USER_LOGIN1;
+  IF Login = 0 THEN
+    BEGIN
+      SELECT COUNT(*) 
+      INTO Email FROM USERS WHERE USER_EMAIL = USER_EMAIL1;
+      IF Email = 0 THEN
+        BEGIN
+          INSERT INTO USERS( USER_NAME, USER_PASSWORD, USER_EMAIL,STATUS , USER_LOGIN)
+          
+          VALUES (USER_NAME1, USER_PASSWORD1, USER_EMAIL1, 0, USER_LOGIN1);
+         
+          COMMIT;
+          STATUS := 'ok';
+        END;
+      ELSE
+        STATUS := 'Email already in use';
+      END IF;
+    END;
+  ELSE
+    STATUS := 'Login already in use';
+  END IF;
+END Check_in ;
+/
+create or replace 
+PROCEDURE Restoration
+(USER_login_R  in varchar2,
+ USER_EMAIL_R in varchar2,
+ USER_PASSWORD_R out varchar2 ,
+ status_Restoration out varchar2)
+ is 
+ login_user_R integer;
+begin
+Select count(*) into login_user_R from users Where USER_login_R =USER_login AND USER_EMAIL= USER_EMAIL_R ;
+if login_user_R >0  then
+begin
+status_Restoration:= 'ok';
+SELECT USER_PASSWORD into USER_PASSWORD_R from users  Where USER_login_R =USER_login AND USER_EMAIL= USER_EMAIL_R ;
+
+end;
+else 
+status_Restoration:= 'not found user';
+end if;
+end Restoration ;
+/
+create or replace 
+trigger History_comission_tr
+BEFORE INSERT OR  UPDATE ON comission
+FOR EACH ROW 
+BEGIN
+ 
+  IF UPDATING THEN
+   INSERT INTO HISTORY_COMISSION(COMISSION_ID,DATE_COMISSION, TIME_COMISSION )
+      VALUES (:OLD.COMISSION_ID, :OLD.DATE_COMISSION, :OLD.TIME_COMISSION);
+  END IF;     
+  IF INSERTING THEN
+    INSERT INTO HISTORY_COMISSION(COMISSION_ID,DATE_COMISSION, TIME_COMISSION )
+      VALUES (:NEW.COMISSION_ID, :NEW.DATE_COMISSION, :NEW.TIME_COMISSION);
+        END IF;  
+ END;
+ /
+
+
